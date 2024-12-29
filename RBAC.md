@@ -112,7 +112,64 @@ kubectl apply -f general-sa.yaml
 kubectl apply -f others-sa.yaml
 ```
 
+Create different namespaces for better understanding
+
+```sh
+kubectl create namespace ns1
+kubectl create namespace ns2
+kubectl create namespace ns3
+```
+
+We want to deploy this yaml file for deployment 
+
+```yml
+apiVersion: apps/v1
+kind: Deployment # Kubernetes resource kind we are creating
+metadata:
+  name: boardgame-deployment
+spec:
+  selector:
+    matchLabels:
+      app: boardgame
+  replicas: 2 # Number of replicas that will be created for this deployment
+  template:
+    metadata:
+      labels:
+        app: boardgame
+    spec:
+      containers:
+        - name: boardgame
+          image: adijaiswal/boardshack:latest # Image that will be used to containers in the cluster
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080 # The port that the container is running on in the cluster
+
+
+---
+
+apiVersion: v1 # Kubernetes API version
+kind: Service # Kubernetes resource kind we are creating
+metadata: # Metadata of the resource kind we are creating
+  name: boardgame-ssvc
+spec:
+  selector:
+    app: boardgame
+  ports:
+    - protocol: "TCP"
+      port: 80
+      targetPort: 8080 
+  type: LoadBalancer # type of the service.
+```
+
+
+```sh
+kubectl apply -f deployment.yml -n ns2
+```
+
+
 #### 2. Generate Tokens for ServiceAccounts
+
+master node থেকে run the commands
 
 ```sh
 # For Admin Service Account
@@ -127,7 +184,9 @@ kubectl -n default create token others
 
 #### 3. Create Kubeconfig Files
 
-Use the tokens generated in the previous step to create kubeconfig files for each ServiceAccount.
+Use the tokens generated in the previous step to create kubeconfig files for each ServiceAccount for authentication.
+
+kubeconfig is in /home/ubuntu/.kube/config
 
 ##### Example: admin-kubeconfig.yaml
 Save this content to `admin-kubeconfig.yaml`:
@@ -157,6 +216,11 @@ Replace `<admin-token>` with the actual token generated for the `admin` ServiceA
 Repeat this process for the `general` and `others` ServiceAccounts, creating separate kubeconfig files.
 
 ##### general-kubeconfig.yaml
+
+run this from another worker machine to check if the permission is ok or not?
+
+অন্য worker node থেকে run করতে হলে আমাদের kubectl  --classic install ও করতে হবে 
+
 Save this content to `general-kubeconfig.yaml`:
 ```yaml
 apiVersion: v1
